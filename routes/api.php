@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TransactionController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -16,4 +17,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('groups', GroupController::class);
     Route::post('/groups/{group}/join', [GroupController::class, 'join']);
+    Route::apiResource('transactions', TransactionController::class);
 });

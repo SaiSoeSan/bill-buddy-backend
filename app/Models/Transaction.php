@@ -6,16 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Group extends Model
+class Transaction extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'name',
-    ];
+    protected $guarded = [];
 
-public function users()
+    public function users()
     {
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class, 'transaction_user');
     }
 }
