@@ -12,8 +12,9 @@ class Transaction extends Model
 
     protected $guarded = [];
 
-    public function users()
+    public function transactionUsers()
     {
-        return $this->belongsToMany(User::class, 'transaction_user');
+        return $this->belongsToMany(User::class, 'transaction_user')
+            ->withPivot('amount_owned', 'status');
     }
 }

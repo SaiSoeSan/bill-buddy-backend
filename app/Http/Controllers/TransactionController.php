@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\TransactionUser;
 use App\Models\Group;
-use App\Http\Requests\TransactionRequest;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
+use App\Models\TransactionUser;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Requests\TransactionRequest;
 
 class TransactionController extends Controller
 {
@@ -18,18 +20,34 @@ class TransactionController extends Controller
             return response()->json(['error' => 'Group not found'], 404);
         }
 
-        $transaction = Transaction::create($request->validated());
+        DB::beginTransaction();
+        try {
+            $transactionData = $request->validated();
+            $transaction = Transaction::create($transactionData);
 
-        if ($request->has('users')) {
-            foreach ($request->users as $userId) {
-                if (!$group->users()->where('user_id', $userId)->exists()) {
-                    return response()->json(['error' => 'User does not belong to the group'], 400);
+            if ($request->has('users')) {
+                $userCount = count($request->users);
+                $amountPerUser = $transaction->amount / $userCount;
+
+                foreach ($request->users as $userId) {
+                    if (!$group->users()->where('user_id', $userId)->exists()) {
+                        DB::rollBack();
+                        return response()->json(['error' => 'User does not belong to the group'], 400);
+                    }
+                    $transaction->transactionUsers()->attach($userId, [
+                        'amount_owned' => $amountPerUser,
+                        'status' => 'pending'
+                    ]);
                 }
-                $transaction->users()->attach($userId);
             }
-        }
 
-        return response()->json($transaction, 201);
+            DB::commit();
+            return response()->json($transaction, 201);
+        } catch (\Exception $e) {
+            Log::error($e);
+            DB::rollBack();
+            return response()->json(['error' => 'Transaction creation failed'], 500);
+        }
     }
 
     // Get all transactions
@@ -50,15 +68,7 @@ class TransactionController extends Controller
     }
 
     // Update a transaction by ID
-    public function update(TransactionRequest $request, $id)
-    {
-        $transaction = Transaction::find($id);
-        if (!$transaction) {
-            return response()->json(['error' => 'Transaction not found'], 404);
-        }
-        $transaction->update($request->all());
-        return response()->json($transaction, 200);
-    }
+    public function update(TransactionRequest $request, $id) {}
 
     // Delete a transaction by ID
     public function destroy($id)
@@ -69,7 +79,7 @@ class TransactionController extends Controller
         }
 
         // Detach related many-to-many records
-        $transaction->users()->detach();
+        $transaction->transactionUsers()->detach();
 
         $transaction->delete();
         return response()->json(['message' => 'Transaction and related records deleted successfully'], 200);

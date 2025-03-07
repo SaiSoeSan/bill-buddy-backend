@@ -19,9 +19,6 @@ class TransactionRequest extends FormRequest
             'group_id' => 'required|exists:groups,id',
             'paid_by' => 'required|exists:users,id',
             'amount' => 'required|numeric|min:0',
-            'type' => 'required|string|max:50',
-            'users' => 'required|array',
-            'users.*' => 'exists:users,id',
         ];
     }
 }
